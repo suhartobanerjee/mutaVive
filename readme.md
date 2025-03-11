@@ -2,8 +2,6 @@
 
 A cellular automaton featuring structural variants in cells.
 
-## A hand at cellular automaton
-
 ## Development path
 
 - [x] create the grid of cells.
