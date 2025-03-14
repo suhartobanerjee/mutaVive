@@ -1,6 +1,8 @@
 use std::{collections::HashMap, default, time::Duration};
 use bevy::{prelude::*};
-use rand_distr::{LogNormal, NormalError};
+use rand::Rng;
+use rand_distr::{Beta, BetaError};
+use rand::distr::{Distribution, StandardUniform};
 
 
 #[derive(Debug, Clone)]
@@ -10,10 +12,22 @@ pub enum SvState {
     Del,
     Inv,
     Idup,
-    Complex
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Hash, PartialOrd, Ord)]
+impl Distribution<SvState> for StandardUniform {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> SvState {
+        let idx: u8 = rng.random_range(0..4);
+        match idx {
+            0 => SvState::Amp,
+            1 => SvState::Del,
+            2 => SvState::Inv,
+            3 => SvState::Idup,
+            _ => SvState::Ref,
+        }
+    }
+}
+
+#[derive(Debug, Default, Eq, PartialEq, Hash, PartialOrd, Ord, Clone)]
 pub enum CellCycleState {
     #[default]
     G1,
@@ -22,7 +36,7 @@ pub enum CellCycleState {
 }
 
 
-#[derive(Component, Debug, PartialEq, Eq)]
+#[derive(Component, Debug, PartialEq, Eq, Clone)]
 pub struct CellCycle {
     pub state: CellCycleState,
     pub timespan: u64,
@@ -59,39 +73,79 @@ impl CellCycle {
     }
 }
 
-#[derive(Debug)]
-pub struct LogNormalDist {
-    pub mean: f64,
-    pub std: f64,
-    pub dist: Result<LogNormal<f64>, NormalError>
+#[derive(Debug, Clone)]
+pub struct MutationDistribution {
+    pub alpha: f32,
+    pub beta: f32,
+    pub dist: Result<Beta<f32>, BetaError>
 }
 
-impl LogNormalDist {
-    pub fn new(mean: f64, std: f64) -> Self {
-        LogNormalDist {
-            mean,
-            std,
-            dist: LogNormal::new(mean, std)
+impl Default for MutationDistribution {
+    fn default() -> Self {
+        let alpha = 1.;
+        let beta = 5.;
+        MutationDistribution {
+            alpha,
+            beta,
+            dist: Beta::new(alpha, beta)
         }
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct Cell {
+    pub n_bases: u64,
     pub genome: Vec<SvState>,
-    pub llr: Vec<f64>,
+    pub llr: Vec<f32>,
+    pub colour: Vec<(f32, f32, f32)>,
     pub cell_cycle: CellCycle,
-    pub mutation_rate_func: LogNormalDist,
+    pub mutation_probability: MutationDistribution,
+    pub natural_selection: f32,
 }
 
 impl Default for Cell {
     fn default() -> Self {
+        let n_bases: u64 = 100;
         Cell{
-            genome: vec![SvState::Ref; 5],
-            llr: vec![0.; 5],
+            n_bases,
+            genome: vec![SvState::Ref; n_bases as usize],
+            llr: vec![0.; n_bases as usize],
+            colour: vec![(0., 0., 0.); n_bases as usize],
             cell_cycle: CellCycle::start(),
-            mutation_rate_func: LogNormalDist::new(0., 1.)
+            mutation_probability: MutationDistribution::default(),
+            natural_selection: 0.7
         }
     }
 }
+
+
+#[derive(Component)]
+pub struct Tissue {
+    pub grid: (i32, i32),
+    pub cells: Vec<Cell>
+}
+
+impl Default for Tissue {
+    fn default() -> Self {
+        let grid = (60, 40);
+        Tissue {
+            grid,
+            cells: vec![Cell::default(); (grid.0 * grid.1) as usize]
+        }
+    }
+}
+
+impl Tissue {
+    pub fn get_coords(&self, idx: usize) -> (usize, usize) {
+        let it1 = idx.div_euclid(self.grid.1 as usize);
+        let it2 = idx.rem_euclid(self.grid.0 as usize);
+        
+        return (it1, it2);
+    }
+
+    pub fn get_idx(&self, it1: usize, it2: usize) -> usize {
+        return it1 * self.grid.1 as usize+ it2 - 1;
+    }
+}
+
 
