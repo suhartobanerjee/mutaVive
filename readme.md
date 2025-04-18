@@ -14,6 +14,10 @@ A cellular automaton featuring structural variants in cells.
     - [x] Model 3 broad type of mutations as the 3 channels of colour { gain: red, loss: blue, inv: green}
     - [x] With every mutation, slowly decrease the corresponding channel by the difference over NATURAL_SELECTION and prop of genome affected till it reaches black
 - [ ] Pause functionality.
-- [ ] Local natural selection.
-- [ ] Differing strength of natural selection.
+- [x] Local natural selection.
+- [ ] Model germline mutations as border colour --> can be used to track lineages.
+- [ ] Model somatic mutations as the fill colour --> to check heterogeneity.
+- [ ] Model the entire grid as a tissue.
+- [ ] Find nearby cells (6 nearby cells).
+- [ ] Differing strength of natural selection as a function of selection strength of nearby cells.
 - [ ] Show generation as a label somewhere.
